@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Now / Next / Later</title>
+<style>:root{--bg:#f7f7f5;--panel:#fff;--ink:#1c1c1a;--muted:#6b6b66;--line:#e3e3de;--accent:#3d5afe;--accent-ink:#fff;--good:#1a7f4b;--bad:#b3261e;--warn:#9a6700;--soft:#eef0ff;--radius:10px;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--panel:#1d1d1b;--ink:#ececE6;--muted:#9a9a93;--line:#30302c;--accent:#8c9eff;--accent-ink:#11122b;--good:#5fd39a;--bad:#ff8a80;--warn:#e3b341;--soft:#23264a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1080px;margin:0 auto;padding:28px 16px 64px}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-size:24px;margin:0;letter-spacing:-.01em}
+h2{font-size:15px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+p.lead{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.grid{display:grid;gap:16px}
+@media(min-width:820px){.cols-2{grid-template-columns:1fr 1fr}.cols-3{grid-template-columns:repeat(3,1fr)}.side{grid-template-columns:340px 1fr}}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+textarea{min-height:120px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.field{margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-weight:600;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.ghost{border-color:transparent;color:var(--muted);padding:4px 8px}
+button:disabled{opacity:.5;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td input{padding:5px 7px}
+.scroll{overflow-x:auto}
+.stat{font-size:28px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:0}
+.muted{color:var(--muted)}.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--accent)}
+.out{white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;min-height:120px}
+.out.mono,code{font-family:var(--mono);font-size:13px}
+.note{font-size:13px;color:var(--muted)}
+footer{margin-top:28px;font-size:13px;color:var(--muted)}
+footer a{color:inherit}
+
+.board{display:grid;gap:16px}
+@media(min-width:820px){.board{grid-template-columns:repeat(3,1fr)}}
+.col{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;min-height:240px}
+.col.over{outline:2px dashed var(--accent);outline-offset:-4px}
+.col h2{display:flex;justify-content:space-between;align-items:center}
+.card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;cursor:grab}
+.card.dragging{opacity:.4}
+.card input,.card textarea{border-color:transparent;background:transparent;padding:2px 4px}
+.card input:hover,.card textarea:hover{border-color:var(--line)}
+.card .title{font-weight:600}
+.card textarea{min-height:0;font-size:13.5px;color:var(--muted)}
+.card .row{justify-content:space-between;margin-top:4px}
+.card select{width:auto;font-size:12px;padding:2px 6px}
+@media print{header .row,.card .row button,.col>button,footer{display:none!important}body{background:#fff}.col{break-inside:avoid}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div>
+      <h1 id="title" contenteditable="true" spellcheck="false">Product roadmap</h1>
+      <p class="lead">A roadmap without dates: what you are doing now, what comes next, and what can wait. Drag cards between columns.</p>
+    </div>
+    <div class="row">
+      <button id="md">Copy as Markdown</button>
+      <button id="print">Print / PDF</button>
+      <button id="reset" class="ghost">Reset</button>
+    </div>
+  </header>
+  <div class="board" id="board"></div>
+  <p id="toast" class="note" role="status"></p>
+  <footer>MIT license · © 2026 Adrien Balcioglu · Runs entirely in your browser.</footer>
+</main>
+<script>
+const KEY = 'now-next-later-v1';
+const COLS = [['now', 'Now', 'In progress or starting this cycle'], ['next', 'Next', 'Planned, scope still flexible'], ['later', 'Later', 'Directions, not commitments']];
+const THEMES = ['', 'Growth', 'Retention', 'Platform', 'Quality', 'Research'];
+const SAMPLE = {
+  title: 'Product roadmap',
+  cards: [
+    { id: 1, col: 'now', title: 'Onboarding checklist', note: 'Raise activation from 38% to 50%.', theme: 'Growth' },
+    { id: 2, col: 'now', title: 'Faster project load', note: 'P95 under 2 seconds.', theme: 'Quality' },
+    { id: 3, col: 'next', title: 'Team invitations', note: 'Invite by link, with roles.', theme: 'Growth' },
+    { id: 4, col: 'later', title: 'Public API', note: 'Waiting on partner interviews.', theme: 'Platform' },
+  ],
+};
+const $ = (id) => document.getElementById(id);
+let state = load();
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && Array.isArray(s.cards)) return s; } catch {}
+  return structuredClone(SAMPLE);
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} }
+const nextId = () => Math.max(0, ...state.cards.map((c) => c.id)) + 1;
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'text') node.textContent = v; else if (k === 'value') node.value = v; else node.setAttribute(k, v); }
+  children.forEach((c) => node.appendChild(c));
+  return node;
+}
+
+function render() {
+  $('title').textContent = state.title;
+  const board = $('board'); board.innerHTML = '';
+  COLS.forEach(([key, name, hint], index) => {
+    const cards = state.cards.filter((c) => c.col === key);
+    const col = el('section', { class: 'col', 'data-col': key, 'aria-label': name }, [
+      el('h2', {}, [el('span', { text: `${name} · ${cards.length}` })]),
+      el('p', { class: 'note', style: 'margin:-4px 0 10px', text: hint }),
+    ]);
+    cards.forEach((c) => {
+      const theme = el('select', { 'data-id': c.id, 'data-k': 'theme', 'aria-label': 'Theme' }, THEMES.map((t) => el('option', { value: t, text: t || 'No theme' })));
+      theme.value = c.theme || '';
+      const buttons = el('span', {}, [
+        ...(index > 0 ? [el('button', { class: 'ghost', 'data-id': c.id, 'data-move': COLS[index - 1][0], text: '←', 'aria-label': 'Move to ' + COLS[index - 1][1] })] : []),
+        ...(index < 2 ? [el('button', { class: 'ghost', 'data-id': c.id, 'data-move': COLS[index + 1][0], text: '→', 'aria-label': 'Move to ' + COLS[index + 1][1] })] : []),
+        el('button', { class: 'ghost', 'data-id': c.id, 'data-del': '1', text: '✕', 'aria-label': 'Delete card' }),
+      ]);
+      const note = el('textarea', { rows: '2', 'data-id': c.id, 'data-k': 'note', placeholder: 'Outcome or note', 'aria-label': 'Note' });
+      note.value = c.note || '';
+      col.appendChild(el('article', { class: 'card', draggable: 'true', 'data-id': c.id }, [
+        el('input', { class: 'title', 'data-id': c.id, 'data-k': 'title', value: c.title, 'aria-label': 'Title' }),
+        note, el('div', { class: 'row' }, [theme, buttons]),
+      ]));
+    });
+    col.appendChild(el('button', { 'data-add': key, text: '+ Add card' }));
+    board.appendChild(col);
+  });
+}
+
+const card = (id) => state.cards.find((c) => c.id === +id);
+function move(id, col) { const c = card(id); if (!c || c.col === col) return; state.cards = state.cards.filter((x) => x !== c); c.col = col; state.cards.push(c); save(); render(); }
+
+$('board').addEventListener('change', (e) => { const t = e.target; if (!t.dataset.k) return; card(t.dataset.id)[t.dataset.k] = t.value; save(); });
+$('board').addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.add) { state.cards.push({ id: nextId(), col: t.dataset.add, title: 'New item', note: '', theme: '' }); save(); render(); }
+  else if (t.dataset.move) move(t.dataset.id, t.dataset.move);
+  else if (t.dataset.del) { state.cards = state.cards.filter((c) => c.id !== +t.dataset.id); save(); render(); }
+});
+let dragged = null;
+$('board').addEventListener('dragstart', (e) => { const c = e.target.closest('.card'); if (!c) return; dragged = c.dataset.id; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragged); });
+$('board').addEventListener('dragend', () => { dragged = null; document.querySelectorAll('.over,.dragging').forEach((n) => n.classList.remove('over', 'dragging')); });
+$('board').addEventListener('dragover', (e) => { const col = e.target.closest('.col'); if (!col || !dragged) return; e.preventDefault(); document.querySelectorAll('.over').forEach((n) => n.classList.remove('over')); col.classList.add('over'); });
+$('board').addEventListener('drop', (e) => { const col = e.target.closest('.col'); if (!col || !dragged) return; e.preventDefault(); move(dragged, col.dataset.col); });
+
+$('title').addEventListener('blur', () => { state.title = $('title').textContent.trim() || 'Product roadmap'; save(); });
+$('title').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+$('print').addEventListener('click', () => window.print());
+$('reset').addEventListener('click', () => { if (confirm('Replace your roadmap with the sample?')) { state = structuredClone(SAMPLE); save(); render(); } });
+$('md').addEventListener('click', async () => {
+  const md = `# ${state.title}\n\n` + COLS.map(([key, name]) => `## ${name}\n\n` + (state.cards.filter((c) => c.col === key).map((c) => `- **${c.title}**${c.theme ? ` (${c.theme})` : ''}${c.note ? `: ${c.note}` : ''}`).join('\n') || '_Nothing yet._')).join('\n\n') + '\n';
+  try { await navigator.clipboard.writeText(md); $('toast').textContent = 'Roadmap copied as Markdown.'; }
+  catch { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' })); a.download = 'roadmap.md'; a.click(); $('toast').textContent = 'Clipboard unavailable: downloaded roadmap.md instead.'; }
+  setTimeout(() => { $('toast').textContent = ''; }, 3000);
+});
+render();
+</script>
+</body>
+</html>
