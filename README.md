@@ -1,6 +1,8 @@
 # Now / Next / Later
 
 A date-free product roadmap board: now, next, later.
+**[Try it live](https://adrienbalcioglu.github.io/now-next-later/)**
+
 
 ## Features
 
